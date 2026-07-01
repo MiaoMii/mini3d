@@ -15,6 +15,7 @@ import type {
   MapProjectionConfig,
   Vec2,
   Vec3,
+  Vec3Object,
 } from '@/types/map'
 
 type MaybeMesh = Object3D & {
@@ -32,9 +33,13 @@ export interface Mini3dLike {
   time: unknown
 }
 
-export function toVector3(value: number | Vec3): Vector3 {
+export function toVector3(value: number | Vec3 | Vec3Object): Vector3 {
   if (Array.isArray(value)) {
     return new Vector3(value[0], value[1], value[2])
+  }
+
+  if (typeof value === 'object') {
+    return new Vector3(value.x, value.y, value.z)
   }
 
   return new Vector3(value, value, value)

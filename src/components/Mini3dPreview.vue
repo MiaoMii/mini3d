@@ -5,17 +5,46 @@
         <span class="mini3d-preview__label">当前地图</span>
         <strong>{{ activeName }}</strong>
       </div>
-      <span v-if="loading" class="mini3d-preview__state">加载中</span>
-      <span
-        v-else-if="errorMessage"
-        class="mini3d-preview__state mini3d-preview__state--error"
-      >
-        {{ errorMessage }}
-      </span>
-      <span v-else class="mini3d-preview__state">{{ activeId }}</span>
+      <div class="mini3d-preview__actions">
+        <button
+          type="button"
+          class="mini3d-preview__camera-button"
+          @click="toggleCameraMode"
+        >
+          {{ isOrthographicCamera ? "正交相机" : "透视相机" }}
+        </button>
+        <button
+          type="button"
+          class="mini3d-preview__camera-button mini3d-preview__focus-button"
+          @click="handleQinghaiAction"
+        >
+          {{ activeId === "qinghai" ? "重播青海动画" : "点击青海省" }}
+        </button>
+        <span v-if="loading" class="mini3d-preview__state">加载中</span>
+        <span
+          v-else-if="errorMessage"
+          class="mini3d-preview__state mini3d-preview__state--error"
+        >
+          {{ errorMessage }}
+        </span>
+        <span v-else class="mini3d-preview__state">{{ activeId }}</span>
+      </div>
     </div>
     <div class="mini3d-preview__viewport">
-      <canvas ref="canvasRef" class="mini3d-preview__canvas" />
+      <canvas
+        ref="canvasRef"
+        class="mini3d-preview__canvas"
+        @click="handleCanvasClick"
+      />
+      <div
+        v-if="showSelectionCard"
+        class="mini3d-preview__selection-card"
+        aria-live="polite"
+      >
+        <span>adcode: <strong>630000</strong></span>
+        <span>name: <strong>青海省</strong></span>
+        <span>level: <strong>province</strong></span>
+      </div>
     </div>
   </section>
 </template>
@@ -51,6 +80,7 @@ const activeName = ref("...");
 const activeId = ref(defaultMapConfigId);
 const loading = ref(false);
 const errorMessage = ref("");
+const isOrthographicCamera = ref(false);
 
 let app: InstanceType<typeof Mini3d> | null = null;
 let mapLayer: MapLayer | null = null;
@@ -60,6 +90,8 @@ let currentGeoJsonText = "";
 let requestSeq = 0;
 let pendingCameraTransitionResolve: (() => void) | null = null;
 let stopRouteWatch: WatchStopHandle | null = null;
+let focusAnimationTimer: number | null = null;
+const showSelectionCard = ref(false);
 
 onMounted(() => {
   if (!canvasRef.value) return;
@@ -67,6 +99,7 @@ onMounted(() => {
   app = new Mini3d(canvasRef.value);
   app.scene.background = new Color("#08131f");
   setupSceneLight();
+  setupSceneGrid();
 
   const mini3dApp = app as unknown as Mini3dLike;
   mapLayer = new MapLayer(mini3dApp);
@@ -86,6 +119,7 @@ onBeforeUnmount(() => {
   requestSeq += 1;
   stopRouteWatch?.();
   window.removeEventListener("keydown", handleKeydown);
+  clearFocusAnimationTimer();
   stopSceneAnimations();
   districtNameLayer?.destory();
   mapLayer?.destory();
@@ -105,8 +139,21 @@ function setupSceneLight() {
   app.scene.add(light);
 }
 
+function setupSceneGrid(bounds: MapViewBounds | null = null) {
+  if (!app) return;
+
+  const maxMapSize = bounds ? Math.max(bounds.size.x, bounds.size.z) : 50;
+  const gridSize = Math.max(Math.ceil(maxMapSize * 1.4), 50);
+
+  app.setGridHelper({
+    size: gridSize,
+    divisions: 20,
+    colorCenterLine: 0x1b4b70,
+    colorGrid: 0x173240,
+  });
+}
+
 async function applyRouteConfig(id: string) {
-  debugger;
   if (!app || !mapLayer || !districtNameLayer) return;
 
   const seq = ++requestSeq;
@@ -126,10 +173,10 @@ async function applyRouteConfig(id: string) {
 
     if (seq !== requestSeq) return;
 
-    const useCameraTransition = Boolean(currentConfig);
-    const cameraDepart = useCameraTransition
-      ? playCameraDepartTransition(nextConfig, mapLayer.getViewBounds())
-      : Promise.resolve();
+    // const useCameraTransition = Boolean(currentConfig);
+    // const cameraDepart = useCameraTransition
+    //   ? playCameraDepartTransition(nextConfig, mapLayer.getViewBounds())
+    //   : Promise.resolve();
 
     if (!currentConfig || !diff) {
       mapLayer.create(nextConfig.map, nextGeoJsonText);
@@ -150,17 +197,25 @@ async function applyRouteConfig(id: string) {
         nextGeoJsonText,
         nextConfig.map.projection,
       );
-      await Promise.all([cameraDepart, mapReady]);
+      // await Promise.all([cameraDepart, mapReady]);
     }
 
     if (seq !== requestSeq) return;
 
-    applySceneConfig(nextConfig, mapLayer.getViewBounds(), useCameraTransition);
+    const bounds = mapLayer.getViewBounds();
+    setupSceneGrid(bounds);
+    // applySceneConfig(nextConfig, bounds, useCameraTransition);
 
     currentConfig = nextConfig;
     currentGeoJsonText = nextGeoJsonText;
     activeName.value = nextConfig.name;
     activeId.value = nextConfig.id;
+
+    if (nextConfig.id === "qinghai") {
+      // scheduleQinghaiFocusAnimation(useCameraTransition ? 1120 : 720);
+    } else {
+      showSelectionCard.value = false;
+    }
   } catch (error) {
     if (seq !== requestSeq) return;
     errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -254,35 +309,35 @@ function applySceneConfig(
     app.scene.background = background;
   }
 
-  gsap.to(camera.position, {
-    x: cameraPosition.x,
-    y: cameraPosition.y,
-    z: cameraPosition.z,
-    duration,
-    ease,
-    onUpdate: () => {
-      if (controls) {
-        controls.update();
-      } else {
-        camera.lookAt(target);
-      }
-    },
-  });
+  // gsap.to(camera.position, {
+  //   x: cameraPosition.x,
+  //   y: cameraPosition.y,
+  //   z: cameraPosition.z,
+  //   duration,
+  //   ease,
+  //   onUpdate: () => {
+  //     if (controls) {
+  //       controls.update();
+  //     } else {
+  //       camera.lookAt(target);
+  //     }
+  //   },
+  // });
 
-  if (controls) {
-    gsap.to(controls.target, {
-      x: target.x,
-      y: target.y,
-      z: target.z,
-      duration,
-      ease,
-      onUpdate: () => {
-        controls.update();
-      },
-    });
-  } else {
-    camera.lookAt(target);
-  }
+  // if (controls) {
+  //   gsap.to(controls.target, {
+  //     x: target.x,
+  //     y: target.y,
+  //     z: target.z,
+  //     duration,
+  //     ease,
+  //     onUpdate: () => {
+  //       controls.update();
+  //     },
+  //   });
+  // } else {
+  //   camera.lookAt(target);
+  // }
 
   camera.updateProjectionMatrix();
 }
@@ -361,6 +416,47 @@ function stopSceneAnimations() {
   }
 }
 
+function handleQinghaiAction() {
+  if (activeId.value !== "qinghai") {
+    void router.push("/map/qinghai");
+    return;
+  }
+
+  scheduleQinghaiFocusAnimation(0);
+}
+
+function handleCanvasClick() {
+  if (activeId.value === "qinghai") {
+    scheduleQinghaiFocusAnimation(0);
+  }
+}
+
+function scheduleQinghaiFocusAnimation(delay: number) {
+  clearFocusAnimationTimer();
+  showSelectionCard.value = false;
+
+  focusAnimationTimer = window.setTimeout(() => {
+    focusAnimationTimer = null;
+    showSelectionCard.value = true;
+    mapLayer?.playFocusAnimation();
+  }, delay);
+}
+
+function clearFocusAnimationTimer() {
+  if (focusAnimationTimer === null) return;
+
+  window.clearTimeout(focusAnimationTimer);
+  focusAnimationTimer = null;
+}
+
+function toggleCameraMode() {
+  if (!app) return;
+
+  stopSceneAnimations();
+  isOrthographicCamera.value = !isOrthographicCamera.value;
+  app.camera.setMode(isOrthographicCamera.value);
+}
+
 function handleKeydown(event: KeyboardEvent) {
   if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
 
@@ -413,8 +509,56 @@ function handleKeydown(event: KeyboardEvent) {
   letter-spacing: 0;
 }
 
+.mini3d-preview__actions {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mini3d-preview__camera-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(36, 118, 91, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #24765b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.mini3d-preview__camera-button:hover {
+  border-color: rgba(36, 118, 91, 0.55);
+  background: #eaf5f0;
+  color: #18523f;
+}
+
+.mini3d-preview__camera-button:active {
+  background: #dceee7;
+}
+
+.mini3d-preview__focus-button {
+  border-color: rgba(20, 132, 166, 0.34);
+  color: #147c9e;
+}
+
+.mini3d-preview__focus-button:hover {
+  border-color: rgba(20, 132, 166, 0.62);
+  background: #e8f7fb;
+  color: #0d5f79;
+}
+
 .mini3d-preview__state {
-  max-width: 42%;
+  max-width: min(260px, 42vw);
   overflow: hidden;
   color: #3e5f56;
   font-size: 13px;
@@ -442,6 +586,47 @@ function handleKeydown(event: KeyboardEvent) {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: pointer;
+}
+
+.mini3d-preview__selection-card {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  display: grid;
+  gap: 7px;
+  min-width: 178px;
+  padding: 14px 16px;
+  border: 1px solid rgba(146, 232, 255, 0.38);
+  border-radius: 8px;
+  background: rgba(245, 251, 255, 0.93);
+  box-shadow:
+    0 18px 38px rgba(0, 0, 0, 0.2),
+    0 0 24px rgba(94, 210, 255, 0.22);
+  color: #223447;
+  font-size: 15px;
+  letter-spacing: 0;
+  line-height: 1.1;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.mini3d-preview__selection-card::after {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid rgba(146, 232, 255, 0.38);
+  border-bottom: 1px solid rgba(146, 232, 255, 0.38);
+  background: rgba(245, 251, 255, 0.93);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.mini3d-preview__selection-card strong {
+  color: #1581b8;
+  font-weight: 800;
 }
 
 :deep(.district-name-label) {
@@ -468,8 +653,13 @@ function handleKeydown(event: KeyboardEvent) {
     flex-direction: column;
   }
 
+  .mini3d-preview__actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
   .mini3d-preview__state {
-    max-width: 100%;
+    max-width: calc(100% - 112px);
   }
 }
 </style>

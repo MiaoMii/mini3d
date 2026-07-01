@@ -36,6 +36,7 @@ export class MapLayer {
   private borderMaterial: LineBasicMaterial | null = null
   private currentConfig: MapLayerConfig | null = null
   private geoJsonText = ''
+  private focusTimeline: ReturnType<typeof gsap.timeline> | null = null
 
   constructor(app: Mini3dLike) {
     this.app = app
@@ -138,6 +139,104 @@ export class MapLayer {
     box.getSize(size)
 
     return { center, size }
+  }
+
+  playFocusAnimation() {
+    if (!this.group || !this.currentConfig) return
+
+    const config = this.currentConfig
+    const targetScale = toVector3(config.scale)
+    const topGroup = this.extrudeMap?.mapGroup
+    const borderGroup = this.borderLine?.lineGroup
+    const baseTopZ = topGroup?.position.z ?? 0
+    const baseBorderZ = borderGroup?.position.z ?? config.depth + config.border.elevation
+    const baseBorderOpacity = config.border.opacity
+    const focusBorderColor = new Color('#f9fbff')
+    const baseBorderColor = new Color(config.border.color)
+
+    this.focusTimeline?.kill()
+    gsap.killTweensOf([
+      this.group.scale,
+      topGroup?.position,
+      borderGroup?.position,
+      this.borderMaterial,
+      this.borderMaterial?.color,
+      this.topMaterial,
+      this.topMaterial?.color,
+    ].filter(Boolean))
+
+    this.group.scale.copy(targetScale.clone().multiplyScalar(0.92))
+    if (topGroup) {
+      topGroup.position.z = baseTopZ - 0.42
+    }
+    if (borderGroup) {
+      borderGroup.position.z = baseBorderZ + 0.12
+    }
+    if (this.borderMaterial) {
+      this.borderMaterial.opacity = 0.18
+      this.borderMaterial.color.copy(focusBorderColor)
+      this.borderMaterial.transparent = true
+    }
+
+    this.focusTimeline = gsap
+      .timeline({
+        defaults: { ease: 'power3.out' },
+        onComplete: () => {
+          this.focusTimeline = null
+        },
+      })
+      .to(this.group.scale, {
+        x: targetScale.x,
+        y: targetScale.y,
+        z: targetScale.z,
+        duration: 0.82,
+      }, 0)
+      .to(topGroup?.position ?? {}, {
+        z: baseTopZ + 0.36,
+        duration: 0.56,
+      }, 0)
+      .to(topGroup?.position ?? {}, {
+        z: baseTopZ,
+        duration: 0.42,
+        ease: 'power2.inOut',
+      }, 0.56)
+      .to(this.topMaterial?.color ?? {}, {
+        r: 0.18,
+        g: 0.78,
+        b: 1,
+        duration: 0.28,
+      }, 0.08)
+      .to(this.topMaterial?.color ?? {}, {
+        r: new Color(config.color).r,
+        g: new Color(config.color).g,
+        b: new Color(config.color).b,
+        duration: 0.72,
+      }, 0.38)
+      .to(borderGroup?.position ?? {}, {
+        z: baseBorderZ + 0.52,
+        duration: 0.36,
+      }, 0.04)
+      .to(this.borderMaterial ?? {}, {
+        opacity: 1,
+        duration: 0.18,
+        repeat: 3,
+        yoyo: true,
+      }, 0.12)
+      .to(this.borderMaterial?.color ?? {}, {
+        r: baseBorderColor.r,
+        g: baseBorderColor.g,
+        b: baseBorderColor.b,
+        duration: 0.5,
+      }, 0.62)
+      .to(this.borderMaterial ?? {}, {
+        opacity: baseBorderOpacity,
+        duration: 0.44,
+      }, 0.68)
+      .to(borderGroup?.position ?? {}, {
+        z: baseBorderZ,
+        duration: 0.48,
+        ease: 'power2.inOut',
+      }, 0.64)
   }
 
   private replaceGeometry(config: MapLayerConfig, geoJsonText: string) {
@@ -408,10 +507,21 @@ export class MapLayer {
   }
 
   private stopAnimations() {
+    this.focusTimeline?.kill()
+    this.focusTimeline = null
+
     const targets: unknown[] = []
 
     if (this.group) {
       targets.push(this.group.position, this.group.scale)
+    }
+
+    if (this.extrudeMap?.mapGroup) {
+      targets.push(this.extrudeMap.mapGroup.position)
+    }
+
+    if (this.borderLine?.lineGroup) {
+      targets.push(this.borderLine.lineGroup.position)
     }
 
     this.getMaterials().forEach((material) => {

@@ -195,6 +195,62 @@ export const mapConfigs: Mini3dMapConfig[] = [
       },
     },
   },
+  {
+    id: 'qinghai',
+    name: '青海省',
+    background: '#06121e',
+    camera: {
+      position: [-3, 22, 30],
+      lookAt: [0, 0, 0],
+    },
+    map: {
+      id: 'qinghai',
+      name: '青海省',
+      geojson: '青海省.geojson',
+      visible: true,
+      color: '#157ea8',
+      sideColor: '#09263d',
+      opacity: 0.94,
+      sideOpacity: 0.74,
+      depth: 0.62,
+      scale: 1,
+      position: [0, 0, 0],
+      projection: {
+        center: [96.2, 36.1],
+        scale: 86,
+      },
+      border: {
+        visible: true,
+        color: '#d8f8ff',
+        opacity: 0.92,
+        width: 1,
+        elevation: 0.1,
+      },
+      transition: {
+        duration: 0.86,
+        ease: 'power3.out',
+        initialScale: 0.88,
+        cameraDuration: 1.35,
+        cameraEase: 'power3.inOut',
+        flyDistanceScale: 1.46,
+        flyHeight: 9,
+      },
+      renderOrder: 6,
+    },
+    districtName: {
+      ...baseDistrictNameConfig,
+      offset: [0, 0, 0.92],
+      scale: 0.032,
+      fontSize: 13,
+      color: '#eafcff',
+      style: {
+        ...baseDistrictNameConfig.style,
+        background: 'rgba(4, 21, 36, 0.74)',
+        borderColor: 'rgba(152, 235, 255, 0.45)',
+        textShadow: '0 0 9px rgba(112, 224, 255, 0.78)',
+      },
+    },
+  },
 ]
 
 export const mapConfigIds = mapConfigs.map((item) => item.id)

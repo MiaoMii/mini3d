@@ -73,3 +73,8 @@ select {
   color: #52635d;
   line-height: 1.7;
 }
+
+.app-shell--flush {
+  display: block;
+  padding: 0;
+}

@@ -2,6 +2,12 @@ export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
 export type ColorValue = string | number
 
+export interface Vec3Object {
+  x: number
+  y: number
+  z: number
+}
+
 export interface MapProjectionConfig {
   center: Vec2
   scale: number
@@ -36,7 +42,9 @@ export interface MapLayerConfig {
   sideOpacity: number
   depth: number
   scale: number | Vec3
-  position: Vec3
+  position: Vec3 | Vec3Object
+  lookAt?: Vec3Object
+  rotation?: Vec3Object
   projection: MapProjectionConfig
   border: MapBorderConfig
   transition: MapTransitionConfig

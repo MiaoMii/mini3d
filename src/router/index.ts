@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import AnimationPreview from '@/components/AnimationPreview.vue'
 import Mini3dPreview from '@/components/Mini3dPreview.vue'
 import { defaultMapConfigId } from '@/config/map'
 
@@ -11,6 +12,11 @@ const routes: RouteRecordRaw[] = [
     path: '/map/:id',
     name: 'map-preview',
     component: Mini3dPreview,
+  },
+  {
+    path: '/animation',
+    name: 'animation-preview',
+    component: AnimationPreview,
   },
 ]
 
