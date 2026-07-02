@@ -22,7 +22,7 @@ export class EngineContext {
   readonly canvas: CoreCanvas;
   readonly container?: HTMLElement;
   readonly scene: Scene;
-  readonly camera: Camera;
+  camera: Camera;
   readonly renderer: Renderer;
   readonly loop: Loop;
   readonly events: EventBus<CoreEventMap>;
@@ -45,6 +45,11 @@ export class EngineContext {
 
   set<TValue>(key: string, value: TValue): this {
     this.services.set(key, value);
+    return this;
+  }
+
+  setCamera(camera: Camera): this {
+    this.camera = camera;
     return this;
   }
 

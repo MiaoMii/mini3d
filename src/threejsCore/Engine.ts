@@ -17,7 +17,7 @@ import type { CoreEventMap, IModule, ResizeInfo, TickInfo } from "./types";
 const DEFAULT_CAMERA_POSITION = new Vector3(10, 10, 10);
 
 export class Engine {
-  readonly camera: Camera;
+  camera: Camera;
   readonly canvas: CoreConfig["canvas"];
   readonly container?: HTMLElement;
   readonly context: EngineContext;
@@ -150,6 +150,22 @@ export class Engine {
 
   render(): void {
     this.renderer.render(this.scene, this.camera);
+  }
+
+  setCamera(camera: Camera): void {
+    if (this.camera !== camera && this.camera.parent === this.scene) {
+      this.scene.remove(this.camera);
+    }
+
+    this.camera = camera;
+    this.context.setCamera(camera);
+
+    if (!camera.parent) {
+      this.scene.add(camera);
+    }
+
+    this.updateCameraProjection(this.resize.getSize());
+    this.invalidate();
   }
 
   refreshSize(): ResizeInfo {

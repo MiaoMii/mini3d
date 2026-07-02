@@ -9,3 +9,4 @@ export * from "./ResizeHandler";
 export * from "./types";
 export * from "./WorkerClient";
 export * from "./WorkerHost";
+export * from "./camera";
