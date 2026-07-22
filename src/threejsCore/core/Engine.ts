@@ -1,18 +1,14 @@
-import type { Camera } from 'three'
-import { EngineContext, RendererMoudle, EventBus, Loop, SceneMoudle } from './index'
-import type { CoreConfig, CoreEventMap, ResizeInfo, IModule } from './index'
+import { EngineContext } from './Context'
+import { engineEvents } from './EngineEvents'
+import type { CoreConfig, ResizeInfo, IModule } from './index'
 
 export class Engins {
   readonly container?: HTMLElement
   readonly ctx: EngineContext
-  readonly events = new EventBus<CoreEventMap>()
-  readonly scene: SceneMoudle | null = null
-  readonly loop: Loop | null = null
-  readonly renderer: RendererMoudle | null = null
-  readonly camera: Camera | null = null
+  readonly events = engineEvents
 
   constructor(config: CoreConfig) {
-    this.ctx = new EngineContext(config)
+    this.ctx = new EngineContext(config, this.events)
 
     // 注册业务模块
     config.modules?.forEach((module) => {
@@ -47,23 +43,32 @@ export class Engins {
     return this.ctx.modules.updateConfig<TConfig>(id, config)
   }
 
+  removeModule(id: string) {
+    return this.ctx.modules.unregister(id)
+  }
+
+  bindModuleData(id: string, dataSourceId?: string) {
+    return this.ctx.modules.bindData(id, dataSourceId)
+  }
+
   async start() {
-    await this.ctx.modules.start()
     this.ctx.resize.start()
     this.ctx.loop.start()
+    await this.ctx.modules.start()
   }
 
   async stop() {
+    await this.ctx.modules.stop()
     this.ctx.loop.stop()
     this.ctx.resize.stop()
-    await this.ctx.modules.stop()
   }
 
   async destroy() {
-    // await this.stop()
-    // await this.ctx.modules.destroy()
-    // this.ctx.rendererModule.destroy()
-    // this.ctx.eventsBus.clear()
-    // this.ctx.clear()
+    await this.stop()
+    await this.ctx.modules.destroy()
+    this.ctx.data.destroy()
+    this.ctx.rendererModule.destroy()
+    this.ctx.eventsBus.clear()
+    this.ctx.clear()
   }
 }

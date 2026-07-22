@@ -17,6 +17,7 @@ export class RendererMoudle implements IModule<RenderConfig> {
   readonly id = 'render'
   readonly name: string = 'render'
   readonly instance: WebGLRenderer
+  canvas
   constructor(config: RenderConfig) {
     const {
       canvas,
@@ -28,7 +29,7 @@ export class RendererMoudle implements IModule<RenderConfig> {
       clearAlpha = 1
     } = config
     this.instance = new WebGLRenderer({ antialias: true, canvas })
-
+    this.canvas = canvas
     this.setSize(width, height, this.resolvePixelRatio(pixelRatio, maxPixelRatio))
 
     if (clearColor) {
@@ -37,8 +38,8 @@ export class RendererMoudle implements IModule<RenderConfig> {
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
-    this.instance.setPixelRatio(pixelRatio)
     this.instance.setSize(w, h, false)
+    this.instance.setPixelRatio(pixelRatio)
   }
 
   resize(resizeInfo: ResizeInfo) {
@@ -46,7 +47,7 @@ export class RendererMoudle implements IModule<RenderConfig> {
     this.instance.setSize(resizeInfo.width, resizeInfo.height, false)
   }
 
-  update?: ((tick: TickInfo, context: EngineContext) => void) | undefined = (tick, context) => {
+  update?: ((tick: TickInfo, context: EngineContext) => void) | undefined = (_tick, context) => {
     this.render(context.scene, context.camera)
   }
 

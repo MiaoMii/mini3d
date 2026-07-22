@@ -1,12 +1,16 @@
-import type { CoreEventMap } from './index'
+import type { EngineEventMap } from './types'
 
 export type EventListener<Payload> = (payload: Payload) => void
 export type Unsubscribe = () => void
 
 type StoredListener = (payload: unknown) => void
 
-export class EventBus<Events extends Record<string, unknown> = CoreEventMap> {
+export class EventBus<Events extends object = EngineEventMap> {
   private readonly listeners = new Map<keyof Events & string, Set<StoredListener>>()
+
+  withTypes<AdditionalEvents extends object>(): EventBus<Events & AdditionalEvents> {
+    return this as unknown as EventBus<Events & AdditionalEvents>
+  }
 
   on<Key extends keyof Events & string>(
     event: Key,

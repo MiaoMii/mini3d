@@ -1,36 +1,28 @@
 import { MathUtils, type Camera, type PerspectiveCamera, type OrthographicCamera } from 'three'
-import type {
-  IModule,
-  TickInfo,
-  CoreEventMap,
-  CoreConfig,
-  ResizeConfig,
-  EngineContext
-} from '../index'
-import { EventBus } from '../index'
-import type { CameraConfig, CameraMode } from './index'
+import type { IModule, CoreConfig, ResizeConfig } from '../index'
+import { DEFAULT_CAMERA_CONFIG } from './config'
+import type { CameraConfig, CameraMode, ResolvedCameraConfig } from './index'
 import { PrspectiveCameraImpl, OrthographicCameraImpl } from './index'
 export class CameraModule implements IModule<CameraConfig> {
   readonly id = 'camera'
   readonly name: string = 'camera'
-  readonly config: CameraConfig
+  readonly config: ResolvedCameraConfig
   readonly resizeConfig: ResizeConfig
   readonly order = -1000
-  // readonly ctx: EngineContext
-  readonly eventsBus: EventBus<CoreEventMap>
   private instance: PerspectiveCamera | OrthographicCamera | undefined = undefined
   prspectiveCamera: PrspectiveCameraImpl | null = null
   othographicCamera: OrthographicCameraImpl | null = null
   // 当前激活模式
   private activeMode: CameraMode = 'perspective'
-  // 模块内部缓存待更新参数
-  private updateConfigCache: CameraConfig | null = null
-  constructor(eventsBus: EventBus<CoreEventMap>, config: Omit<CoreConfig, 'canvas'>) {
-    this.config = config.camera ?? {}
-    this.resizeConfig = config.resize ?? {}
-    this.eventsBus = eventsBus
 
-    this.activeMode = this.config?.mod ? this.config?.mod : this.activeMode
+  constructor(config: Omit<CoreConfig, 'canvas'>) {
+    this.config = {
+      ...DEFAULT_CAMERA_CONFIG,
+      ...config.camera
+    }
+    this.resizeConfig = config.resize ?? {}
+
+    this.activeMode = this.config.mod
     this.start()
   }
 
@@ -60,15 +52,7 @@ export class CameraModule implements IModule<CameraConfig> {
     // })
   }
 
-  update(_tick: TickInfo, context: EngineContext) {
-    console.log('相机更新了')
-    // if (this.updateConfigCache) {
-    //   this.handleConfigUpdate(this.updateConfigCache)
-    //   this.updateConfigCache = null
-    // }
-  }
-
-  resize(resizeInfo, ctx, config) {
+  resize(): void {
     this.updateCameraProjection()
   }
 
@@ -92,8 +76,33 @@ export class CameraModule implements IModule<CameraConfig> {
     this.activeMode = nextMode
   }
 
-  handleConfigUpdate(updateConfig: CameraConfig) {
-    Object.assign(this.config, updateConfig)
+  updateConfig(config: Partial<CameraConfig>): void {
+    Object.assign(this.config, config)
+
+    const perspectiveCamera = this.prspectiveCamera
+    const orthographicCamera = this.othographicCamera
+
+    if (perspectiveCamera) {
+      perspectiveCamera.instance.fov = this.config.fov
+      perspectiveCamera.instance.near = this.config.near
+      perspectiveCamera.instance.far = this.config.far
+    }
+
+    if (orthographicCamera) {
+      orthographicCamera.instance.near = this.config.near
+      orthographicCamera.instance.far = this.config.far
+    }
+
+    if (config.position !== undefined) {
+      perspectiveCamera?.setPosition(this.config.position)
+      orthographicCamera?.setPosition(this.config.position)
+    }
+
+    if (config.target !== undefined) {
+      perspectiveCamera?.lookAt(this.config.target)
+      orthographicCamera?.lookAt(this.config.target)
+    }
+
     this.setMod()
     this.updateCameraProjection()
   }
@@ -119,7 +128,7 @@ export class CameraModule implements IModule<CameraConfig> {
    */
   private calcOrthHalfHeight(): number {
     const distance = this.prspectiveCamera?.distance ?? 1
-    const fovRad = MathUtils.degToRad((this.config?.fov ?? 45) / 2)
+    const fovRad = MathUtils.degToRad(this.config.fov / 2)
     return distance * Math.tan(fovRad)
   }
 

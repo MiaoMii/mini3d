@@ -13,7 +13,7 @@ export class OrthographicCameraImpl implements ICamera<OrthographicCamera> {
     this.frustumSize = config.frustumSize ?? 20
     this.instance = new OrthographicCamera(0, 0, 0, 0, config.near ?? 0.1, config.far ?? 10000)
     this.target = toVector3(config.target, new Vector3())
-    this.setPosition(config.position ?? [10, 10, 10])
+    this.setPosition(config.position ?? [0, 0, 0])
     this.resize({
       width: aspect,
       height: 1,

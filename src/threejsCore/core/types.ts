@@ -1,6 +1,6 @@
 import { type WebGLRendererParameters } from 'three'
 import type { EngineContext } from './Context'
-import type { CoreConfig, ResizeConfig } from './config'
+import type { CoreConfig } from './config'
 import type { CameraConfig } from './camera/config'
 
 export interface TickInfo {
@@ -8,14 +8,24 @@ export interface TickInfo {
   elapsed: number
 }
 
+export type ModulesType =
+  | 'BaseGround' /*底层基底*/
+  | 'Light' /*全局光照*/
+  | 'EffectAnim' /*告警/动画特效*/
+  | 'HelperTool' /*调试辅助工具*/
+  | 'BusinessView' /*业务*/
+
 export interface IModule<TConfig = unknown> {
   id: string
+  dataSourceId?: string
   name?: string
   order?: number
   config?: TConfig
+  type?: ModulesType
   init?: (context: EngineContext) => void | Promise<void>
   start?: (context: EngineContext) => void | Promise<void>
   updateConfig?: (config: Partial<TConfig>, context: EngineContext) => void | Promise<void>
+  onDataChange?: (data: unknown, context: EngineContext) => void | Promise<void>
   update?: (tick: TickInfo, context: EngineContext, config?: Partial<CoreConfig>) => void
   resize?: (size: ResizeInfo, context: EngineContext, config?: Partial<CoreConfig>) => void
   stop?: (context: EngineContext) => void | Promise<void>
@@ -32,23 +42,12 @@ export interface ResizeInfo {
 export type CoreCanvas = NonNullable<WebGLRendererParameters['canvas']>
 
 export interface CoreEventMap {
-  [event: string]: unknown
   'loop:tick': TickInfo
   'camera:update': CameraConfig
-  // "engine:initialized": { context: EngineContext };
-  // "engine:start": { context: EngineContext };
-  // "engine:stop": undefined;
-  // "engine:destroy": undefined;
-  // "engine:error": { error: unknown };
-  // "loop:render": TickInfo;
   resize: ResizeInfo
-  // "module:added": ModuleEventPayload;
-  // "module:initialized": ModuleEventPayload;
-  // "module:started": ModuleEventPayload;
-  // "module:stopped": ModuleEventPayload;
-  // "module:destroyed": ModuleEventPayload;
-  // "module:removed": ModuleEventPayload;
-  // "module:dirty": ModuleEventPayload;
-  // "module:committed": ModuleEventPayload;
-  // "module:error": ModuleErrorPayload;
+}
+
+/** Public events are extended by each integration through EventBus.withTypes(). */
+export interface EngineEventMap {
+  [event: string]: unknown
 }

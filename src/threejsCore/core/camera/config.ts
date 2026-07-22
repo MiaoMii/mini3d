@@ -21,3 +21,14 @@ export interface CameraConfig {
   position?: Vector3Value
   target?: Vector3Value
 }
+
+export type ResolvedCameraConfig = Required<CameraConfig>
+
+export const DEFAULT_CAMERA_CONFIG: ResolvedCameraConfig = {
+  mod: 'perspective',
+  fov: 45,
+  near: 0.1,
+  far: 10000,
+  position: [10, 10, 10],
+  target: [0, 0, 0]
+}

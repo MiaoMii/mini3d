@@ -15,39 +15,14 @@ import {
   type SetViewOptions
 } from '../animation'
 import { toVector3 } from '../cameras/utils'
-import type { ControlsConfig } from './config'
-
-const DEFAULT_CONTROLS_CONFIG: ControlsConfig = {
-  enabled: true,
-  enableDamping: true,
-  dampingFactor: 0.05,
-  autoRotate: false,
-  autoRotateSpeed: 2,
-  enableZoom: true,
-  zoomSpeed: 1,
-  minDistance: 2,
-  maxDistance: 20000,
-  minZoom: 0,
-  maxZoom: Infinity,
-  zoomToCursor: false,
-  enablePan: true,
-  panSpeed: 1,
-  screenSpacePanning: true,
-  enableRotate: true,
-  rotateSpeed: 1,
-  minPolarAngle: 0,
-  maxPolarAngle: Math.PI,
-  minAzimuthAngle: -Infinity,
-  maxAzimuthAngle: Infinity,
-  flightDuration: 3,
-  worldUp: [0, 1, 0]
-}
+import { DEFAULT_CONTROLS_CONFIG } from './config'
+import type { ControlsConfig, ResolvedControlsConfig } from './config'
 
 export class ControlsModule implements IModule<ControlsConfig> {
   readonly id = 'controls'
   readonly name: string = 'controls'
   readonly order: number = -1000
-  readonly config: ControlsConfig
+  readonly config: ResolvedControlsConfig
   readonly canvas: CoreCanvas
   readonly camera: CameraModule
   private _instance: OrbitControls | null = null

@@ -7,9 +7,11 @@ import {
   Loop,
   CameraModule,
   ModuleManager,
-  ControlsModule
+  ControlsModule,
+  DataManager
 } from './index'
-import type { CoreEventMap, CoreConfig, CoreCanvas } from './index'
+import { engineEvents } from './EngineEvents'
+import type { CoreEventMap, CoreConfig, CoreCanvas, EngineEventMap } from './index'
 
 export class EngineContext {
   readonly canvas: CoreCanvas
@@ -18,7 +20,9 @@ export class EngineContext {
   // camera: Camera
   // readonly renderer: RendererMoudle
   readonly loop: Loop
-  readonly eventsBus = new EventBus<CoreEventMap>()
+  readonly events: EventBus<EngineEventMap> // 外部使用 避免污染内部方法
+  readonly eventsBus = new EventBus<CoreEventMap>() // 内部使用
+  readonly data: DataManager
   readonly modules: ModuleManager
   readonly resize: Resize
   public readonly controlsModule: ControlsModule
@@ -29,13 +33,19 @@ export class EngineContext {
   // 插件服务注册
   private readonly services = new Map<string, unknown>()
 
-  constructor(config: CoreConfig) {
+  constructor(config: CoreConfig, events = engineEvents) {
+    this.events = events
+    this.data = new DataManager(config.dataRequester)
+    config.dataSources?.forEach((source) => {
+      this.data.register(source)
+    })
+
     // 初始化场景
-    this.sceneModule = new SceneMoudle()
+    this.sceneModule = new SceneMoudle(config.scene)
     // 初始化渲染器
     this.rendererModule = new RendererMoudle({ canvas: config.canvas })
     // 初始化相机
-    this.cameraModule = new CameraModule(this.eventsBus, config)
+    this.cameraModule = new CameraModule(config)
     // 初始化控制器
     this.controlsModule = new ControlsModule(this.cameraModule, config)
 

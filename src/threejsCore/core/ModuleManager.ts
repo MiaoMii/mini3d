@@ -1,10 +1,11 @@
 import type { CoreConfig, IModule, ResizeInfo, TickInfo } from './index'
 // import { EventBus } from './EventBus'
 // import type { CoreEventMap } from './types'
-import { EngineContext } from './index'
+import type { EngineContext } from './index'
 export class ModuleManager {
   private ctx: EngineContext | null = null
   private modules = new Map<string, IModule>()
+  private readonly dataSubscriptions = new Map<string, () => void>()
   private started = false
   private config: Partial<CoreConfig>
 
@@ -21,24 +22,28 @@ export class ModuleManager {
     this.modules.set(module.id, module)
 
     module.init?.(this.ctx!)
+    this.subscribeModuleData(module)
 
     if (this.started) {
       module.start?.(this.ctx!)
     }
   }
 
-  unRegister(id: string) {
+  async unregister(id: string): Promise<boolean> {
     const module = this.modules.get(id)
 
-    if (!module) return
+    if (!module) return false
+
+    this.unsubscribeModuleData(id)
 
     if (this.started) {
-      module.stop?.(this.ctx!)
+      await module.stop?.(this.ctx!)
     }
 
-    module.destroy?.(this.ctx!)
+    await module.destroy?.(this.ctx!)
 
     this.modules.delete(id)
+    return true
   }
 
   init() {
@@ -52,7 +57,9 @@ export class ModuleManager {
 
     this.started = true
 
-    await Promise.all(this.getSortedModules().map((module: IModule) => module.start?.(this.ctx!)))
+    for (const module of this.getSortedModules()) {
+      await module.start?.(this.ctx!)
+    }
   }
 
   async stop() {
@@ -60,7 +67,9 @@ export class ModuleManager {
 
     this.started = false
 
-    await Promise.all(this.getSortedModules().map((module: IModule) => module.stop?.(this.ctx!)))
+    for (const module of this.getSortedModules()) {
+      await module.stop?.(this.ctx!)
+    }
   }
 
   update(tick: TickInfo) {
@@ -78,6 +87,28 @@ export class ModuleManager {
     return true
   }
 
+  bindData(id: string, dataSourceId?: string): boolean {
+    const module = this.modules.get(id)
+    if (!module) return false
+
+    if (!module.onDataChange) {
+      throw new Error(`Module "${id}" does not support data binding.`)
+    }
+
+    if (dataSourceId && !this.ctx?.data.has(dataSourceId)) {
+      throw new Error(`Data source with id "${dataSourceId}" is not registered.`)
+    }
+
+    this.unsubscribeModuleData(id)
+    module.dataSourceId = dataSourceId
+    this.subscribeModuleData(module)
+    return true
+  }
+
+  has(id: string): boolean {
+    return this.modules.has(id)
+  }
+
   resize(info: ResizeInfo) {
     this.getSortedModules().forEach((module: IModule) => {
       module.resize?.(info, this.ctx!, this.config)
@@ -87,6 +118,9 @@ export class ModuleManager {
   async destroy() {
     await this.stop()
 
+    this.dataSubscriptions.forEach((unsubscribe) => unsubscribe())
+    this.dataSubscriptions.clear()
+
     await Promise.all(this.getSortedModules().map((module: IModule) => module.destroy?.(this.ctx!)))
 
     this.modules.clear()
@@ -94,5 +128,22 @@ export class ModuleManager {
 
   private getSortedModules(): IModule[] {
     return [...this.modules.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  }
+
+  private subscribeModuleData(module: IModule): void {
+    if (!module.dataSourceId || !module.onDataChange || !this.ctx) return
+
+    const unsubscribe = this.ctx.data.subscribe(module.dataSourceId, (data) => {
+      Promise.resolve(module.onDataChange?.(data, this.ctx!)).catch((error) => {
+        console.error(`Module "${module.id}" failed to apply data.`, error)
+      })
+    })
+
+    this.dataSubscriptions.set(module.id, unsubscribe)
+  }
+
+  private unsubscribeModuleData(id: string): void {
+    this.dataSubscriptions.get(id)?.()
+    this.dataSubscriptions.delete(id)
   }
 }
