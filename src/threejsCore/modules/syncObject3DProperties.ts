@@ -6,6 +6,9 @@ interface Object3DProperties {
   renderOrder: number
 }
 
+/**
+ * 将通用模块配置同步到 Three.js 对象。
+ */
 export function syncObject3DProperties(instance: Object3D, config: Object3DProperties): void {
   instance.name = config.name
   instance.visible = config.visible

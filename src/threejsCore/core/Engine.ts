@@ -7,6 +7,9 @@ export class Engins {
   readonly ctx: EngineContext
   readonly events = engineEvents
 
+  /**
+   * 创建场景引擎实例。
+   */
   constructor(config: CoreConfig) {
     this.ctx = new EngineContext(config, this.events)
 
@@ -34,35 +37,56 @@ export class Engins {
     }
   }
 
+  /**
+   * 向场景引擎注册业务模块。
+   */
   use(module: IModule) {
     this.ctx.modules.register(module)
     return this
   }
 
+  /**
+   * 更新指定模块的配置。
+   */
   updateModuleConfig<TConfig = unknown>(id: string, config: Partial<TConfig>) {
     return this.ctx.modules.updateConfig<TConfig>(id, config)
   }
 
+  /**
+   * 从引擎中移除指定模块。
+   */
   removeModule(id: string) {
     return this.ctx.modules.unregister(id)
   }
 
+  /**
+   * 为指定模块绑定或解除数据源。
+   */
   bindModuleData(id: string, dataSourceId?: string) {
     return this.ctx.modules.bindData(id, dataSourceId)
   }
 
+  /**
+   * 启动场景引擎。
+   */
   async start() {
     this.ctx.resize.start()
     this.ctx.loop.start()
     await this.ctx.modules.start()
   }
 
+  /**
+   * 停止场景引擎。
+   */
   async stop() {
     await this.ctx.modules.stop()
     this.ctx.loop.stop()
     this.ctx.resize.stop()
   }
 
+  /**
+   * 释放场景引擎持有的资源。
+   */
   async destroy() {
     await this.stop()
     await this.ctx.modules.destroy()

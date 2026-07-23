@@ -19,6 +19,7 @@ export const styleSchema = {
       type: 'number',
       title: '分割数',
       minimum: 0,
+      maximum: 500,
       default: DEFAULT_MODULE_CONFIG.gridDivision
     },
     gridColor: {
@@ -157,7 +158,7 @@ export const styleSchema = {
       minimum: 0,
       maximum: 1,
       default: DEFAULT_MODULE_CONFIG.beamOpacity
-    },
+    }
   }
 } satisfies ModuleStyleSchema
 

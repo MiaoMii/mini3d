@@ -3,22 +3,37 @@ import type { ApiDataSourceConfig, DataSourceConfig, StaticDataSourceConfig } fr
 export class DataSource<TData = unknown> {
   private config: DataSourceConfig<TData>
 
+  /**
+   * 创建数据源实例。
+   */
   constructor(registration: DataSourceConfig<TData>) {
     this.config = this.resolveConfig(registration)
   }
 
+  /**
+   * 获取数据源标识。
+   */
   get id(): string {
     return this.config.id
   }
 
+  /**
+   * 获取数据源类型。
+   */
   get type(): DataSourceConfig['type'] {
     return this.config.type
   }
 
+  /**
+   * 获取数据源配置的独立副本。
+   */
   getConfig(): DataSourceConfig<TData> {
     return structuredClone(this.config)
   }
 
+  /**
+   * 校验并应用数据源配置变更。
+   */
   update(patch: Partial<DataSourceConfig<TData>>): void {
     if (patch.id && patch.id !== this.id) {
       throw new Error('Data source id cannot be changed.')
@@ -50,6 +65,9 @@ export class DataSource<TData = unknown> {
     }
   }
 
+  /**
+   * 合并并校验数据源配置。
+   */
   private resolveConfig(registration: DataSourceConfig<TData>): DataSourceConfig<TData> {
     if (registration.type === 'static') {
       return {

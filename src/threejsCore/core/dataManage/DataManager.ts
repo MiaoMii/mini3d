@@ -11,6 +11,9 @@ import type {
   DataSourceListener
 } from './types'
 
+/**
+ * 使用 Axios 按数据源配置发起请求。
+ */
 const requestWithAxios: DataRequester = async (config, signal) => {
   const response = await axios.request({
     url: config.url,
@@ -37,10 +40,16 @@ export class DataManager {
   private readonly sourceListeners = new Set<DataSourceListener>()
   private readonly requester: DataRequester
 
+  /**
+   * 创建数据管理器实例。
+   */
   constructor(requester: DataRequester = requestWithAxios) {
     this.requester = requester
   }
 
+  /**
+   * 注册数据源并创建对应的数据存储。
+   */
   register<TData>(registration: DataSourceConfig<TData>): DataResourceSnapshot<TData> {
     assertUuid(registration.id, 'Data source')
 
@@ -78,14 +87,23 @@ export class DataManager {
     return this.getSnapshot(source.id) as DataResourceSnapshot<TData>
   }
 
+  /**
+   * 判断指定数据源是否已注册。
+   */
   has(dataSourceId: string): boolean {
     return this.sources.has(dataSourceId)
   }
 
+  /**
+   * 获取指定数据源的当前数据。
+   */
   get<TData = unknown>(dataSourceId: string): TData | undefined {
     return this.getStore(dataSourceId).get<TData>()
   }
 
+  /**
+   * 获取数据源配置、存储状态和轮询状态组成的独立快照。
+   */
   getSnapshot<TData = unknown>(dataSourceId: string): DataResourceSnapshot<TData> {
     const source = this.getSource<TData>(dataSourceId)
     const store = this.getStore(dataSourceId)
@@ -97,10 +115,16 @@ export class DataManager {
     }
   }
 
+  /**
+   * 获取全部数据源及其状态快照。
+   */
   getSources(): readonly DataResourceSnapshot[] {
     return [...this.sources.keys()].map((dataSourceId) => this.getSnapshot(dataSourceId))
   }
 
+  /**
+   * 写入指定数据源的数据。
+   */
   set<TData>(dataSourceId: string, data: TData): void {
     const source = this.getSource<TData>(dataSourceId)
 
@@ -111,6 +135,9 @@ export class DataManager {
     this.getStore(dataSourceId).set(data)
   }
 
+  /**
+   * 更新数据源配置及其轮询状态。
+   */
   updateSource<TData>(dataSourceId: string, patch: Partial<DataSourceConfig<TData>>): void {
     const source = this.getSource<TData>(dataSourceId)
     const wasPolling = this.pollingTimers.has(dataSourceId)
@@ -132,6 +159,9 @@ export class DataManager {
     this.publishSources()
   }
 
+  /**
+   * 合并数据请求参数并触发对应状态更新。
+   */
   updateParams(dataSourceId: string, params: DataRequestParams): Promise<unknown> {
     const source = this.getApiSource(dataSourceId)
     const config = source.getConfig() as ApiDataSourceConfig
@@ -144,6 +174,9 @@ export class DataManager {
     return this.request(dataSourceId)
   }
 
+  /**
+   * 订阅指定数据源的成功数据变化。
+   */
   subscribe<TData>(dataSourceId: string, listener: DataListener<TData>): () => void {
     this.unsubscribe(dataSourceId, listener)
 
@@ -165,6 +198,9 @@ export class DataManager {
     return () => this.unsubscribe(dataSourceId, listener)
   }
 
+  /**
+   * 取消指定数据源监听器的订阅。
+   */
   unsubscribe<TData>(dataSourceId: string, listener: DataListener<TData>): void {
     const subscriptions = this.dataSubscriptions.get(dataSourceId)
     const unsubscribe = subscriptions?.get(listener as DataListener<unknown>)
@@ -177,6 +213,9 @@ export class DataManager {
     }
   }
 
+  /**
+   * 订阅数据源列表变化，并立即接收当前列表。
+   */
   subscribeSources(listener: DataSourceListener): () => void {
     this.sourceListeners.add(listener)
     listener(this.getSources())
@@ -184,6 +223,9 @@ export class DataManager {
     return () => this.sourceListeners.delete(listener)
   }
 
+  /**
+   * 请求指定 API 数据源并更新其存储状态。
+   */
   async request<TData = unknown>(dataSourceId: string): Promise<TData | undefined> {
     const source = this.getApiSource(dataSourceId)
     const config = source.getConfig() as ApiDataSourceConfig
@@ -229,6 +271,9 @@ export class DataManager {
     }
   }
 
+  /**
+   * 启动指定 API 数据源的定时轮询。
+   */
   startPolling(dataSourceId: string): boolean {
     if (this.pollingTimers.has(dataSourceId)) return false
 
@@ -247,6 +292,9 @@ export class DataManager {
     return true
   }
 
+  /**
+   * 停止指定 API 数据源的定时轮询。
+   */
   stopPolling(dataSourceId: string): boolean {
     const timer = this.pollingTimers.get(dataSourceId)
     if (!timer) return false
@@ -257,6 +305,9 @@ export class DataManager {
     return true
   }
 
+  /**
+   * 删除数据源并释放其请求、轮询和订阅资源。
+   */
   remove(dataSourceId: string): boolean {
     if (!this.sources.has(dataSourceId)) return false
 
@@ -274,11 +325,17 @@ export class DataManager {
     return true
   }
 
+  /**
+   * 释放数据管理器持有的资源。
+   */
   destroy(): void {
     ;[...this.sources.keys()].forEach((dataSourceId) => this.remove(dataSourceId))
     this.sourceListeners.clear()
   }
 
+  /**
+   * 获取指定数据源实例。
+   */
   private getSource<TData = unknown>(dataSourceId: string): DataSource<TData> {
     const source = this.sources.get(dataSourceId)
     if (!source) {
@@ -288,6 +345,9 @@ export class DataManager {
     return source as DataSource<TData>
   }
 
+  /**
+   * 获取指定的 API 数据源。
+   */
   private getApiSource(dataSourceId: string): DataSource {
     const source = this.getSource(dataSourceId)
     if (source.type !== 'api') {
@@ -297,6 +357,9 @@ export class DataManager {
     return source
   }
 
+  /**
+   * 获取指定数据源对应的数据存储。
+   */
   private getStore(dataSourceId: string): DataStore {
     const store = this.stores.get(dataSourceId)
     if (!store) {
@@ -306,17 +369,26 @@ export class DataManager {
     return store
   }
 
+  /**
+   * 取消指定数据源正在进行的请求。
+   */
   private abortRequest(dataSourceId: string): void {
     this.requestControllers.get(dataSourceId)?.abort()
     this.requestControllers.delete(dataSourceId)
   }
 
+  /**
+   * 向订阅者发布全部数据源的最新快照。
+   */
   private publishSources(): void {
     const sources = this.getSources()
     this.sourceListeners.forEach((listener) => listener(sources))
   }
 }
 
+/**
+ * 从接口响应中读取配置路径对应的数据。
+ */
 function readResponsePath(response: unknown, responsePath?: string): unknown {
   if (!responsePath?.trim()) return response
 
@@ -339,11 +411,17 @@ function readResponsePath(response: unknown, responsePath?: string): unknown {
   return value
 }
 
+/**
+ * 将未知异常转换为 Error 实例。
+ */
 function toError(error: unknown): Error {
   if (error instanceof Error) return error
   return new Error(typeof error === 'string' ? error : 'API request failed.')
 }
 
+/**
+ * 校验标识是否为合法的 UUID。
+ */
 function assertUuid(id: string, entityName: string): void {
   if (!UUID_PATTERN.test(id)) {
     throw new Error(`${entityName} id "${id}" must be a UUID.`)

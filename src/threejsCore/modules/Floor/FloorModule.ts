@@ -82,6 +82,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
   private running = false
   private needsUpdate = false
 
+  /**
+   * 创建地面网格模块实例。
+   */
   constructor(config: FloorConfig = {}) {
     this.id = config.id ?? MathUtils.generateUUID()
     this.config = {
@@ -119,6 +122,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.name = this.config.name
   }
 
+  /**
+   * 初始化地面网格模块所需资源。
+   */
   init(context: EngineContext): void {
     if (this.root) return
 
@@ -149,12 +155,18 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.needsUpdate = false
   }
 
+  /**
+   * 启动地面网格模块。
+   */
   async start(): Promise<void> {
     this.running = true
     if (!this.root) return
     this.root.visible = this.config.visible
   }
 
+  /**
+   * 更新地面网格模块的动画和待处理配置。
+   */
   update(tick: TickInfo): void {
     const dt = this.getDeltaSeconds(tick)
 
@@ -168,6 +180,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     }
   }
 
+  /**
+   * 记录地面网格模块的配置变更，等待下一帧统一应用。
+   */
   updateConfig(config: Partial<FloorConfig>): void {
     Object.assign(this.config, config)
 
@@ -181,12 +196,18 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.needsUpdate = this.pendingConfigKeys.size > 0
   }
 
+  /**
+   * 停止地面网格模块及其动画更新。
+   */
   async stop(): Promise<void> {
     this.running = false
     if (!this.root) return
     this.root.visible = false
   }
 
+  /**
+   * 释放地面网格模块持有的场景对象和渲染资源。
+   */
   destroy(context: EngineContext): void {
     if (!this.root) return
 
@@ -208,6 +229,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.needsUpdate = false
   }
 
+  /**
+   * 提交待处理的配置变更并更新场景对象。
+   */
   private commitPendingConfigChanges(): void {
     if (!this.root || !this.pendingConfigKeys.size) return
 
@@ -238,6 +262,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.needsUpdate = false
   }
 
+  /**
+   * 将基础配置同步到地面根对象。
+   */
   private applyBaseConfig(): void {
     if (!this.root) return
     syncObject3DProperties(this.root, this.config)
@@ -247,6 +274,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.root.userData.moduleConfig = cloneDeep(this.config)
   }
 
+  /**
+   * 根据当前配置重建网格辅助对象。
+   */
   private rebuildGridHelper(): void {
     if (!this.root) return
 
@@ -263,14 +293,23 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.root.add(next)
   }
 
+  /**
+   * 根据当前配置重建地面主体对象。
+   */
   private rebuildShapeObject(): void {
     this.replaceChildObject('shapeObject', this.createShapeObject())
   }
 
+  /**
+   * 根据当前配置重建点阵对象。
+   */
   private rebuildPointObject(): void {
     this.replaceChildObject('pointObject', this.createPointObject())
   }
 
+  /**
+   * 根据当前配置重建单元格线条对象。
+   */
   private rebuildCellLineObject(): void {
     this.replaceChildObject(
       'cellLineObject',
@@ -278,6 +317,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     )
   }
 
+  /**
+   * 根据当前配置重建地面光束对象。
+   */
   private rebuildBeamObject(): void {
     this.beamUpdater = null
     if (!this.config.beamEnabled) {
@@ -287,6 +329,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.replaceChildObject('beamObject', this.createBeamObject())
   }
 
+  /**
+   * 根据当前配置重建随机闪烁对象。
+   */
   private rebuildFlashObject(): void {
     this.flashUpdater = null
     if (!this.config.flashEnabled) {
@@ -296,6 +341,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     this.replaceChildObject('flashObject', this.createFlashObject())
   }
 
+  /**
+   * 替换地面根节点中的指定子对象并释放旧资源。
+   */
   private replaceChildObject(
     key: 'shapeObject' | 'pointObject' | 'cellLineObject' | 'beamObject' | 'flashObject',
     next: Object3D | null
@@ -314,10 +362,16 @@ export class GridHelperModule implements IModule<FloorConfig> {
     }
   }
 
+  /**
+   * 判断指定配置字段是否发生变化。
+   */
   private hasChanged(keys: ConfigKey[]): boolean {
     return keys.some((key) => this.pendingConfigKeys.has(key))
   }
 
+  /**
+   * 递归释放对象树中的几何体和材质资源。
+   */
   private disposeObjectTree(object: Object3D): void {
     object.traverse((node: any) => {
       if (node.geometry?.dispose) {
@@ -331,11 +385,17 @@ export class GridHelperModule implements IModule<FloorConfig> {
     })
   }
 
+  /**
+   * 获取限制在安全范围内的帧间隔秒数。
+   */
   private getDeltaSeconds(tick: TickInfo): number {
     const anyTick = tick as any
     return anyTick.delta ?? anyTick.deltaTime ?? anyTick.dt ?? 0.016
   }
 
+  /**
+   * 创建地面网格辅助对象。
+   */
   private createGridHelper(): GridHelper {
     return new GridHelper(
       this.config.gridSize,
@@ -345,6 +405,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     )
   }
 
+  /**
+   * 创建地面主体形状对象。
+   */
   private createShapeObject(): LineSegments | null {
     const { gridSize, gridDivision, shapeSize, shapeColor } = this.config
     const shapeSpace = gridSize / gridDivision
@@ -369,6 +432,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     return object as unknown as LineSegments
   }
 
+  /**
+   * 创建地面点阵对象。
+   */
   private createPointObject(): Object3D | null {
     const { gridSize, pointSize, pointColor, pointLayout } = this.config
     const [rows, cols] = pointLayout
@@ -394,6 +460,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     return new THREE.Points(geometry, material)
   }
 
+  /**
+   * 创建地面单元格线条对象。
+   */
   private createCellLineObject(): Object3D | null {
     const { gridSize, gridDivision, cellLineColor, cellLineOpacity } = this.config
     const cell = gridSize / gridDivision
@@ -425,6 +494,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     return object
   }
 
+  /**
+   * 创建地面光束效果对象。
+   */
   private createBeamObject(): Object3D | null {
     const {
       gridSize,
@@ -438,6 +510,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     } = this.config
 
     const range = gridSize / 2
+    /**
+     * 创建并启动一条地面光束动画。
+     */
     const spawnBeam = (initial: boolean): BeamState => ({
       x: (Math.random() * 2 - 1) * range,
       z: (Math.random() * 2 - 1) * range,
@@ -537,6 +612,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     return object
   }
 
+  /**
+   * 创建地面随机闪烁效果对象。
+   */
   private createFlashObject(): Object3D | null {
     const { gridSize, gridDivision, flashColor, flashOpacity, flashDuration, flashConcurrent } =
       this.config
@@ -609,6 +687,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
     let elapsed = 0
     const arr = colorAttr.array as Float32Array
 
+    /**
+     * 随机激活一个地面四边形的闪烁效果。
+     */
     const activateRandomQuad = () => {
       for (let tries = 0; tries < 8; tries++) {
         const qd = quads[(Math.random() * quads.length) | 0]
@@ -654,6 +735,9 @@ export class GridHelperModule implements IModule<FloorConfig> {
   }
 }
 
+/**
+ * 创建由十字形单元组成的缓冲几何体。
+ */
 function createPlusGeometry(shapeSize: number): THREE.ShapeGeometry {
   const w = shapeSize / 18
   const h = shapeSize / 3

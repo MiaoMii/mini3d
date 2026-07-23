@@ -30,6 +30,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
   }
   private running = false
 
+  /**
+   * 创建立方体模块实例。
+   */
   constructor(config: CubeModuleConfig = {}) {
     this.id = config.id ?? MathUtils.generateUUID()
     this.dataSourceId = config.dataSourceId
@@ -57,6 +60,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.name = this.config.name
   }
 
+  /**
+   * 初始化立方体模块所需资源。
+   */
   init(context: EngineContext): void {
     if (this.instance) return
 
@@ -79,6 +85,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.pendingConfigKeys.clear()
   }
 
+  /**
+   * 启动立方体模块。
+   */
   async start(): Promise<void> {
     this.running = true
 
@@ -98,6 +107,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     await this.playLifecycleAnimation(this.config.size, 1, duration, ease)
   }
 
+  /**
+   * 更新立方体模块的运行状态。
+   */
   update(tick: TickInfo): void {
     this.commitPendingConfigChanges()
 
@@ -110,6 +122,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.instance.rotation.z += z * tick.delta
   }
 
+  /**
+   * 应用立方体模块的配置变更。
+   */
   updateConfig(config: Partial<CubeModuleConfig>): void {
     const nextConfig: ResolvedCubeModuleConfig = {
       name: config.name ?? this.config.name,
@@ -141,6 +156,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     })
   }
 
+  /**
+   * 将数据源的新数据应用到立方体模块。
+   */
   onDataChange(data: unknown): void {
     if (!data || typeof data !== 'object' || Array.isArray(data)) return
 
@@ -176,6 +194,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     }
   }
 
+  /**
+   * 停止立方体模块。
+   */
   async stop(): Promise<void> {
     this.running = false
 
@@ -192,6 +213,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.instance.visible = false
   }
 
+  /**
+   * 释放立方体模块持有的资源。
+   */
   destroy(context: EngineContext): void {
     if (!this.instance) return
 
@@ -210,6 +234,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.running = false
   }
 
+  /**
+   * 提交待处理的配置变更并更新场景对象。
+   */
   private commitPendingConfigChanges(): void {
     if (this.pendingConfigKeys.size === 0) return
 
@@ -223,24 +250,36 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     this.pendingConfigKeys.clear()
   }
 
+  /**
+   * 更新模块名称。
+   */
   private updateName(): void {
     if (!this.instance) return
 
     this.instance.name = this.config.name
   }
 
+  /**
+   * 更新场景对象的渲染顺序。
+   */
   private updateRenderOrder(): void {
     if (!this.instance) return
 
     this.instance.renderOrder = this.config.renderOrder
   }
 
+  /**
+   * 更新场景对象的可见性。
+   */
   private updateVisibility(): void {
     if (!this.instance) return
 
     this.instance.visible = this.config.visible
   }
 
+  /**
+   * 更新场景对象的位置。
+   */
   private updatePosition(): void {
     if (!this.instance) return
 
@@ -256,6 +295,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     })
   }
 
+  /**
+   * 更新场景对象的颜色。
+   */
   private updateColor(): void {
     if (!this.instance) return
 
@@ -271,6 +313,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     })
   }
 
+  /**
+   * 更新场景对象的尺寸。
+   */
   private updateSize(): void {
     if (!this.instance) return
 
@@ -284,6 +329,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     })
   }
 
+  /**
+   * 播放模块进入或离开场景的生命周期动画。
+   */
   private playLifecycleAnimation(
     scale: number,
     opacity: number,
@@ -303,6 +351,9 @@ export class CubeModule implements IModule<CubeModuleConfig> {
     }
 
     return new Promise((resolve) => {
+      /**
+       * 结束生命周期动画并释放时间线引用。
+       */
       const finishAnimation = () => {
         if (this.lifecycleAnimation === animation) {
           this.lifecycleAnimation = null

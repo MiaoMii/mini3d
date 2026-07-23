@@ -29,7 +29,6 @@ import {
   SpriteMaterial,
   SRGBColorSpace,
   Texture,
-  TextureLoader,
   TubeGeometry,
   Vector2,
   Vector3,
@@ -42,6 +41,10 @@ import { DEFAULT_MODULE_CONFIG } from './config'
 import type { ExtrudeMapConfig, ResolvedExtrudeMapConfig } from './config'
 import { cloneDeep } from 'lodash'
 import { geoMercator } from 'd3-geo'
+import {
+  asyncLoaderTexture,
+  resolveResourceUrl
+} from '@/views/Projects/mapScene3D/threejsCore/utils/asyncLoader'
 
 type ConfigKey = Extract<keyof ExtrudeMapConfig, string>
 type MapGeometry = Polygon | MultiPolygon
@@ -162,8 +165,6 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
     this.instance = new Group()
     syncObject3DProperties(this.instance, this.config)
     this.updateTransform()
-
-    // this.instance.rotation.x = -Math.PI / 2
 
     context.scene.add(this.instance)
 
@@ -327,13 +328,14 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
   private async buildMap(version: number): Promise<void> {
     const mapJson = await this.loadGeoJson(this.config.mapJsonUrl)
     const boundaryJson = await this.loadGeoJson(this.config.boundaryJsonUrl, true)
-    const texture = await this.loadTexture(this.config.faceMaterialUrl)
+    const texture = await asyncLoaderTexture(this.config.faceMaterialUrl)
     if (version !== this.buildVersion || !this.instance || !mapJson) {
       texture?.dispose()
       return
     }
 
     this.configureGeoProjection()
+    if (texture) this.configureTopTexture(texture, mapJson)
     const materials = this.createMapMaterials(texture)
     const surfaceGroup = new Group()
     const strokeGroup = new Group()
@@ -666,7 +668,7 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
     }
 
     const topMaterial = new MeshLambertMaterial({
-      color: this.config.faceColor,
+      color: texture ? 0xffffff : this.config.faceColor,
       map: texture,
       transparent: true,
       opacity: 0,
@@ -919,7 +921,7 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
     this.topUniforms.uColor2.value.set(this.config.faceSideColor2)
     this.topUniforms.uTopColor.value.set(this.config.faceColor)
 
-    this.topMaterial?.color.set(this.config.faceColor)
+    this.topMaterial?.color.set(this.topMaterial.map ? 0xffffff : this.config.faceColor)
     if (this.topMaterial) this.topMaterial.opacity = this.getTopOpacity()
     this.strokeMaterial?.color.set(this.config.storkColor)
     this.boundaryUniforms.uColor.value.set(this.config.boundaryLineColor)
@@ -983,6 +985,49 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
   }
 
   /**
+   * 将顶面纹理映射到整张地图的投影范围。
+   *
+   * ExtrudeGeometry 会直接使用形状坐标作为顶面 UV。地图投影坐标通常只占很小的
+   * 数值范围，因此需要通过纹理矩阵将其归一化到 0 到 1，避免只采样图片角落。
+   * @param texture 顶面纹理
+   * @param mapJson 地图要素集合
+   */
+  private configureTopTexture(texture: Texture, mapJson: MapGeoJson): void {
+    let minX = Number.POSITIVE_INFINITY
+    let minY = Number.POSITIVE_INFINITY
+    let maxX = Number.NEGATIVE_INFINITY
+    let maxY = Number.NEGATIVE_INFINITY
+
+    mapJson.features.forEach((feature) => {
+      if (!isSupportedFeature(feature)) return
+
+      this.getPolygons(feature.geometry).forEach((rings) => {
+        rings.forEach((ring) => {
+          ring.forEach(([longitude, latitude]) => {
+            const projected = this.geoProjection([longitude, latitude])
+            if (!projected) return
+
+            const x = projected[0]
+            const y = -projected[1]
+            minX = Math.min(minX, x)
+            minY = Math.min(minY, y)
+            maxX = Math.max(maxX, x)
+            maxY = Math.max(maxY, y)
+          })
+        })
+      })
+    })
+
+    if (![minX, minY, maxX, maxY].every(Number.isFinite)) return
+
+    const width = Math.max(maxX - minX, Number.EPSILON)
+    const height = Math.max(maxY - minY, Number.EPSILON)
+    texture.repeat.set(1 / width, 1 / height)
+    texture.offset.set(-minX / width, -minY / height)
+    texture.needsUpdate = true
+  }
+
+  /**
    * 投影地理坐标
    * @param coordinate
    * @returns
@@ -1026,7 +1071,7 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
   private async loadGeoJson(url: string, optional = false): Promise<MapGeoJson | null> {
     if (!url.trim()) return optional ? null : { type: 'FeatureCollection', features: [] }
 
-    const resourceUrl = this.resolveResourceUrl(url)
+    const resourceUrl = resolveResourceUrl(url)
     let request = this.jsonCache.get(resourceUrl)
     if (!request) {
       request = fetch(resourceUrl).then(async (response) => {
@@ -1054,37 +1099,6 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
       }
       throw error
     }
-  }
-
-  /**
-   * 加载材质
-   * @param url
-   * @returns
-   */
-  private async loadTexture(url: string): Promise<Texture | null> {
-    if (!url.trim()) return null
-
-    try {
-      const texture = await new TextureLoader().loadAsync(this.resolveResourceUrl(url))
-      texture.colorSpace = SRGBColorSpace
-      return texture
-    } catch (error) {
-      console.warn(`Failed to load map face texture "${url}".`, error)
-      return null
-    }
-  }
-
-  /**
-   * 解析路径
-   * @param url
-   * @returns
-   */
-  private resolveResourceUrl(url: string): string {
-    if (/^(https?:|data:|blob:)/i.test(url)) return url
-
-    const baseUrl = String(import.meta.env.VITE_IMAGE_URL ?? '').replace(/\/$/, '')
-    const normalizedUrl = url.startsWith('/') ? url : `/${url}`
-    return `${baseUrl}${normalizedUrl}`
   }
 
   /**
@@ -1191,6 +1205,9 @@ export class ExtrudeMapModule implements IModule<ExtrudeMapConfig> {
    */
   private waitForTimeline(timeline: gsap.core.Timeline, completed?: () => void): Promise<void> {
     return new Promise((resolve) => {
+      /**
+       * 结束当前动画并清理运行状态。
+       */
       const finish = () => {
         if (this.lifecycleAnimation === timeline) {
           this.lifecycleAnimation = null

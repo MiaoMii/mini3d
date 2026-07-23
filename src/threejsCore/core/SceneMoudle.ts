@@ -10,6 +10,9 @@ export class SceneMoudle implements IModule<SceneConfig> {
   readonly config: Required<SceneConfig>
   private readonly instance: Scene
 
+  /**
+   * 创建场景模块实例。
+   */
   constructor(config: SceneConfig = {}) {
     this.config = {
       background: config.background ?? DEFAULT_SCENE_CONFIG.background
@@ -18,10 +21,19 @@ export class SceneMoudle implements IModule<SceneConfig> {
     this.updateBackground()
   }
 
+  /**
+   * 启动场景模块。
+   */
   start() {}
 
+  /**
+   * 执行场景模块的帧更新钩子。
+   */
   update() {}
 
+  /**
+   * 应用场景模块的配置变更。
+   */
   updateConfig(config: Partial<SceneConfig>): void {
     Object.assign(this.config, config)
 
@@ -30,10 +42,16 @@ export class SceneMoudle implements IModule<SceneConfig> {
     }
   }
 
+  /**
+   * 获取 Three.js 场景实例。
+   */
   get scene() {
     return this.instance
   }
 
+  /**
+   * 根据场景配置更新背景颜色。
+   */
   private updateBackground(): void {
     this.instance.background =
       this.config.background === null ? null : new Color(this.config.background)

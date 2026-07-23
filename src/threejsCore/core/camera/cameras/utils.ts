@@ -1,6 +1,9 @@
 import { Vector3 } from 'three'
 import type { Vector3Value } from '../config'
 
+/**
+ * 将三元数组转换为 Three.js 三维向量。
+ */
 export function toVector3(value?: Vector3Value, fallback = new Vector3()): Vector3 {
   if (!value) {
     return fallback.clone()

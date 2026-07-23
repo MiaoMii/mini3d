@@ -29,6 +29,9 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
   }
   private running = false
 
+  /**
+   * 创建坐标轴辅助模块实例。
+   */
   constructor(config: AxesHelperConfig = {}) {
     this.id = config.id ?? MathUtils.generateUUID()
     this.config = {
@@ -46,6 +49,9 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     this.name = this.config.name
   }
 
+  /**
+   * 初始化坐标轴辅助模块所需资源。
+   */
   init(context: EngineContext): void {
     if (this.instance) return
 
@@ -66,6 +72,9 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     this.pendingConfigKeys.clear()
   }
 
+  /**
+   * 启动坐标轴辅助模块。
+   */
   async start(): Promise<void> {
     this.running = true
 
@@ -74,10 +83,16 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     this.instance.visible = this.config.visible
   }
 
+  /**
+   * 更新坐标轴辅助模块的运行状态。
+   */
   update(tick: TickInfo): void {
     this.commitPendingConfigChanges()
   }
 
+  /**
+   * 应用坐标轴辅助模块的配置变更。
+   */
   updateConfig(config: Partial<AxesHelperConfig>): void {
     const nextConfig: AxesHelperConfig = {
       name: config.name ?? this.config.name,
@@ -101,12 +116,18 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     })
   }
 
+  /**
+   * 停止坐标轴辅助模块。
+   */
   async stop(): Promise<void> {
     this.running = false
     if (!this.instance) return
     this.instance.visible = false
   }
 
+  /**
+   * 释放坐标轴辅助模块持有的资源。
+   */
   destroy(context: EngineContext): void {
     if (!this.instance) return
 
@@ -117,6 +138,9 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     this.running = false
   }
 
+  /**
+   * 提交待处理的配置变更并更新场景对象。
+   */
   private commitPendingConfigChanges(): void {
     if (this.pendingConfigKeys.size === 0) return
     if (this.instance) {
@@ -128,24 +152,36 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     this.pendingConfigKeys.clear()
   }
 
+  /**
+   * 更新模块名称。
+   */
   private updateName(): void {
     if (!this.instance) return
 
     this.instance.name = this.config.name
   }
 
+  /**
+   * 更新场景对象的渲染顺序。
+   */
   private updateRenderOrder(): void {
     if (!this.instance) return
 
     this.instance.renderOrder = this.config.renderOrder
   }
 
+  /**
+   * 更新场景对象的可见性。
+   */
   private updateVisibility(): void {
     if (!this.instance) return
 
     this.instance.visible = this.config.visible
   }
 
+  /**
+   * 更新场景对象的颜色。
+   */
   private updateColor(): void {
     if (!this.instance) return
     this.instance.setColors(
@@ -155,6 +191,9 @@ export class AxesHelperModule implements IModule<AxesHelperConfig> {
     )
   }
 
+  /**
+   * 更新场景对象的尺寸。
+   */
   private updateSize(): void {
     if (!this.instance) return
 

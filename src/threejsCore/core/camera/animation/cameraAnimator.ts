@@ -7,6 +7,9 @@ interface ActiveFlight extends CameraFlightOptions {
   to: CameraPose
 }
 
+/**
+ * 复制相机姿态，避免动画过程修改调用方数据。
+ */
 const clonePose = (pose: CameraPose): CameraPose => ({
   position: pose.position.clone(),
   target: pose.target.clone(),
@@ -22,6 +25,9 @@ export class CameraAnimator {
   }
   private readonly worldUp: Vector3
 
+  /**
+   * 创建相机动画器实例。
+   */
   constructor(
     private readonly setPose: (pose: CameraPose) => void,
     worldUp = new Vector3(0, 1, 0)
@@ -29,16 +35,25 @@ export class CameraAnimator {
     this.worldUp = worldUp.clone().normalize()
   }
 
+  /**
+   * 判断相机动画当前是否正在运行。
+   */
   get isActive(): boolean {
     return this.flight !== null
   }
 
+  /**
+   * 设置相机动画使用的世界向上方向。
+   */
   setWorldUp(worldUp: Vector3): void {
     if (worldUp.lengthSq() > 0) {
       this.worldUp.copy(worldUp).normalize()
     }
   }
 
+  /**
+   * 启动相机动画器。
+   */
   start(from: CameraPose, to: CameraPose, options: CameraFlightOptions): void {
     this.cancel()
 
@@ -59,6 +74,9 @@ export class CameraAnimator {
     }
   }
 
+  /**
+   * 更新相机动画器的运行状态。
+   */
   update(delta: number): void {
     const flight = this.flight
     if (!flight) return
@@ -96,10 +114,16 @@ export class CameraAnimator {
     }
   }
 
+  /**
+   * 取消当前相机动画并保留当前位置。
+   */
   cancel(): void {
     this.finish(false)
   }
 
+  /**
+   * 立即完成当前相机动画。
+   */
   complete(): void {
     const flight = this.flight
     if (!flight) return
@@ -109,6 +133,9 @@ export class CameraAnimator {
     flight.complete?.()
   }
 
+  /**
+   * 结束当前动画并清理运行状态。
+   */
   private finish(completed: boolean): void {
     const flight = this.flight
     if (!flight) return
@@ -123,6 +150,9 @@ export class CameraAnimator {
     }
   }
 
+  /**
+   * 设置飞行动画轨迹的最大抬升高度。
+   */
   private setFlightHeight(
     position: Vector3,
     start: Vector3,

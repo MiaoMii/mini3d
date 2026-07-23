@@ -15,6 +15,9 @@ export class CameraModule implements IModule<CameraConfig> {
   // 当前激活模式
   private activeMode: CameraMode = 'perspective'
 
+  /**
+   * 创建相机模块实例。
+   */
   constructor(config: Omit<CoreConfig, 'canvas'>) {
     this.config = {
       ...DEFAULT_CAMERA_CONFIG,
@@ -26,7 +29,9 @@ export class CameraModule implements IModule<CameraConfig> {
     this.start()
   }
 
-  // 初始化相机
+  /**
+   * 创建透视相机和正交相机实例。
+   */
   init() {
     // 创建透视相机
     this.prspectiveCamera = new PrspectiveCameraImpl(this.config, this.getAspect())
@@ -44,6 +49,9 @@ export class CameraModule implements IModule<CameraConfig> {
     })
   }
 
+  /**
+   * 初始化相机并激活配置指定的相机模式。
+   */
   start() {
     this.init()
     this.setMod()
@@ -52,17 +60,29 @@ export class CameraModule implements IModule<CameraConfig> {
     // })
   }
 
+  /**
+   * 根据最新尺寸更新相机模块。
+   */
   resize(): void {
     this.updateCameraProjection()
   }
 
+  /**
+   * 执行相机模块的停止生命周期；当前无需额外处理。
+   */
   stop() {}
 
+  /**
+   * 清除当前激活的相机引用。
+   */
   destroy() {
     // this.eventsBus.off('camera:update')
     this.instance = undefined
   }
 
+  /**
+   * 切换当前激活的相机模式。
+   */
   setMod() {
     const nextMode = this.config.mod ?? this.activeMode
     if (this.instance && this.activeMode === nextMode) return
@@ -76,6 +96,9 @@ export class CameraModule implements IModule<CameraConfig> {
     this.activeMode = nextMode
   }
 
+  /**
+   * 应用相机模块的配置变更。
+   */
   updateConfig(config: Partial<CameraConfig>): void {
     Object.assign(this.config, config)
 
@@ -132,6 +155,9 @@ export class CameraModule implements IModule<CameraConfig> {
     return distance * Math.tan(fovRad)
   }
 
+  /**
+   * 获取当前有效的相机宽高比。
+   */
   private getAspect(): number {
     const { aspect, width, height } = this.resizeConfig
     if (typeof aspect === 'number' && Number.isFinite(aspect) && aspect > 0) {
@@ -145,6 +171,9 @@ export class CameraModule implements IModule<CameraConfig> {
     return 1
   }
 
+  /**
+   * 构造当前相机投影所需的尺寸信息。
+   */
   private getResizeInfo() {
     const width = this.resizeConfig.width ?? 1
     const height = this.resizeConfig.height ?? 1
@@ -156,6 +185,9 @@ export class CameraModule implements IModule<CameraConfig> {
     }
   }
 
+  /**
+   * 获取当前激活的相机实例。
+   */
   get camera(): Camera {
     const camera = this.instance
     if (!camera) {

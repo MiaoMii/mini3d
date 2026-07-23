@@ -30,6 +30,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
   private readonly worldUp: Vector3
   private started = false
 
+  /**
+   * 创建相机控制模块实例。
+   */
   constructor(camera: CameraModule, config: CoreConfig) {
     this.camera = camera
     this.config = { ...DEFAULT_CONTROLS_CONFIG, ...config.controls }
@@ -45,6 +48,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     this.start()
   }
 
+  /**
+   * 初始化相机控制模块所需资源。
+   */
   init(): void {
     if (this._instance) return
 
@@ -58,6 +64,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     controls.update()
   }
 
+  /**
+   * 启动相机控制模块。
+   */
   start(): void {
     this.init()
     this.started = true
@@ -67,6 +76,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     }
   }
 
+  /**
+   * 更新相机控制模块的运行状态。
+   */
   update(tick: TickInfo): void {
     const controls = this._instance
     if (!controls) return
@@ -81,6 +93,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     controls.update(tick.delta)
   }
 
+  /**
+   * 应用相机控制模块的配置变更。
+   */
   updateConfig(config: Partial<ControlsConfig>): void {
     Object.assign(this.config, config)
 
@@ -98,6 +113,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     }
   }
 
+  /**
+   * 停止相机控制模块。
+   */
   stop(): void {
     this.started = false
     this.cancelFlight()
@@ -107,6 +125,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     }
   }
 
+  /**
+   * 释放相机控制模块持有的资源。
+   */
   destroy(): void {
     this.cancelFlight()
     this._instance?.removeEventListener('start', this.handleControlStart)
@@ -115,6 +136,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     this.animator = null
   }
 
+  /**
+   * 立即设置相机位置和观察目标。
+   */
   setView(options: SetViewOptions = {}): void {
     this.ensureInitialized()
     this.flushControlsMotion()
@@ -122,6 +146,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     this.setPose(this.resolvePose(options, this.getPose()))
   }
 
+  /**
+   * 以动画方式将相机移动到目标姿态。
+   */
   flyTo(options: FlyToOptions): void {
     this.ensureInitialized()
     this.flushControlsMotion()
@@ -139,6 +166,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     })
   }
 
+  /**
+   * 将相机朝向指定目标位置。
+   */
   lookAt(target: SetViewOptions['target'], offset: HeadingPitchRange = {}): void {
     if (!target) return
 
@@ -157,6 +187,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     })
   }
 
+  /**
+   * 移动相机以完整容纳指定包围球。
+   */
   flyToBoundingSphere(sphere: BoundingSphereValue, options: FlyToBoundingSphereOptions = {}): void {
     const center = toVector3(sphere.center)
     const { offset = {}, ...flightOptions } = options
@@ -173,32 +206,53 @@ export class ControlsModule implements IModule<ControlsConfig> {
     })
   }
 
+  /**
+   * 取消正在执行的相机飞行动画。
+   */
   cancelFlight(): void {
     this.animator?.cancel()
   }
 
+  /**
+   * 立即完成正在执行的相机飞行动画。
+   */
   completeFlight(): void {
     this.animator?.complete()
   }
 
+  /**
+   * 获取已初始化的轨道控制器实例。
+   */
   get instance(): OrbitControls | null {
     return this._instance
   }
 
+  /**
+   * 判断相机当前是否处于飞行动画中。
+   */
   get isFlying(): boolean {
     return this.animator?.isActive ?? false
   }
 
+  /**
+   * 获取控制器当前观察目标的副本。
+   */
   get target(): Vector3 {
     return this._instance?.target ?? toVector3(this.camera.config.target)
   }
 
+  /**
+   * 确保控制器及其依赖已完成初始化。
+   */
   private ensureInitialized(): void {
     if (!this._instance) {
       this.init()
     }
   }
 
+  /**
+   * 将当前配置应用到轨道控制器。
+   */
   private configureControls(controls: OrbitControls): void {
     controls.enabled = this.started && (this.config.enabled ?? true)
     controls.enableDamping = this.config.enableDamping ?? true
@@ -223,6 +277,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     controls.maxAzimuthAngle = this.config.maxAzimuthAngle ?? Infinity
   }
 
+  /**
+   * 获取控制器监听输入事件的 DOM 元素。
+   */
   private getDomElement(): HTMLElement | null {
     if (typeof HTMLElement !== 'undefined' && this.canvas instanceof HTMLElement) {
       return this.canvas
@@ -231,6 +288,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     return null
   }
 
+  /**
+   * 读取相机当前位置、目标和朝向信息。
+   */
   private getPose(): CameraPose {
     const camera = this.camera.camera
 
@@ -241,6 +301,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     }
   }
 
+  /**
+   * 将相机移动参数解析为完整姿态。
+   */
   private resolvePose(options: SetViewOptions, current: CameraPose): CameraPose {
     const destination = options.destination
       ? toVector3(options.destination)
@@ -297,6 +360,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     return { position: destination, target, up }
   }
 
+  /**
+   * 根据目标点或姿态角解析观察方向。
+   */
   private resolveViewDirection(
     direction: CameraOrientation['direction'],
     fallback: Vector3
@@ -314,6 +380,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     return normalized.normalize()
   }
 
+  /**
+   * 判断姿态是否提供完整的航向、俯仰和翻滚角。
+   */
   private hasHeadingPitchRoll(orientation?: CameraOrientation): boolean {
     return Boolean(
       orientation &&
@@ -323,6 +392,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     )
   }
 
+  /**
+   * 根据航向角和俯仰角计算观察方向。
+   */
   private directionFromHeadingPitch(heading: number, pitch: number): Vector3 {
     const cosPitch = Math.cos(pitch)
 
@@ -333,6 +405,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     ).normalize()
   }
 
+  /**
+   * 根据观察方向和翻滚角计算相机向上方向。
+   */
   private upFromDirectionAndRoll(direction: Vector3, roll: number): Vector3 {
     const right = new Vector3().crossVectors(direction, this.worldUp)
 
@@ -359,6 +434,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
       .normalize()
   }
 
+  /**
+   * 计算完整显示包围球所需的相机距离。
+   */
   private getBoundingSphereRange(radius: number): number {
     const camera = this.camera.camera
 
@@ -372,6 +450,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     return Math.max(radius * 2, camera.position.distanceTo(this.target))
   }
 
+  /**
+   * 清除控制器残留的阻尼运动。
+   */
   private flushControlsMotion(): void {
     const controls = this._instance
     if (!controls) return
@@ -385,6 +466,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     controls.autoRotate = autoRotate
   }
 
+  /**
+   * 将控制器切换到当前激活的相机。
+   */
   private syncActiveCamera(controls: OrbitControls): void {
     const activeCamera = this.camera.camera
     if (controls.object === activeCamera) return
@@ -400,6 +484,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     this.setPose(pose)
   }
 
+  /**
+   * 立即将相机和控制器同步到指定姿态。
+   */
   private setPose = (pose: CameraPose): void => {
     const camera = this.camera.camera
     const controls = this._instance
@@ -411,6 +498,9 @@ export class ControlsModule implements IModule<ControlsConfig> {
     camera.updateMatrixWorld()
   }
 
+  /**
+   * 在用户开始操作时中止自动相机动画。
+   */
   private handleControlStart = (): void => {
     this.cancelFlight()
   }

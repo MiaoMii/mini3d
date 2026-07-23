@@ -33,6 +33,9 @@ export class EngineContext {
   // 插件服务注册
   private readonly services = new Map<string, unknown>()
 
+  /**
+   * 创建引擎上下文实例。
+   */
   constructor(config: CoreConfig, events = engineEvents) {
     this.events = events
     this.data = new DataManager(config.dataRequester)
@@ -59,11 +62,17 @@ export class EngineContext {
     // this.modules.register(this.controlsModule)
   }
 
+  /**
+   * 注册或替换扩展服务。
+   */
   set<TValue>(key: string, value: TValue): this {
     this.services.set(key, value)
     return this
   }
 
+  /**
+   * 获取扩展服务；不存在时抛出错误。
+   */
   get<TValue>(key: string): TValue {
     if (!this.services.has(key)) {
       throw new Error(`Service "${key}" is not registered in EngineContext.`)
@@ -72,29 +81,50 @@ export class EngineContext {
     return this.services.get(key) as TValue
   }
 
+  /**
+   * 获取可能不存在的扩展服务。
+   */
   maybe<TValue>(key: string): TValue | undefined {
     return this.services.get(key) as TValue | undefined
   }
 
+  /**
+   * 判断扩展服务是否已注册。
+   */
   has(key: string): boolean {
     return this.services.has(key)
   }
 
+  /**
+   * 删除指定扩展服务。
+   */
   delete(key: string): boolean {
     return this.services.delete(key)
   }
 
+  /**
+   * 清空上下文中注册的扩展服务。
+   */
   clear(): void {
     this.services.clear()
   }
 
   // 快捷getter，业务层直接取原生Three对象
+  /**
+   * 获取引擎场景实例。
+   */
   get scene(): Scene {
     return this.sceneModule.scene
   }
+  /**
+   * 获取引擎相机实例。
+   */
   get camera(): Camera {
     return this.cameraModule.camera
   }
+  /**
+   * 获取引擎渲染器实例。
+   */
   get renderer(): WebGLRenderer {
     return this.rendererModule.renderer
   }

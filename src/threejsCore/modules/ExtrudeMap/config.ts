@@ -51,7 +51,7 @@ export const DEFAULT_MODULE_CONFIG: ResolvedExtrudeMapConfig = {
   depth: 0.2,
   scale: 1,
   center: [116.3683244, 39.915085],
-  rotation: [0, 0, 0],
+  rotation: [-Math.PI / 2, 0, 0],
   mapJsonUrl: '',
   boundaryJsonUrl: '',
   storkColor: '#ffffff',

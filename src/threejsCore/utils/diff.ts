@@ -7,6 +7,9 @@ export type ObjectDiff<TObject extends object> = Partial<{
   [TKey in Extract<keyof TObject, string>]: PropertyChange<TObject[TKey]>
 }>
 
+/**
+ * 计算两个配置对象之间发生变化的字段。
+ */
 export function diff<TObject extends object>(
   previous: TObject,
   current: TObject
@@ -31,6 +34,9 @@ export function diff<TObject extends object>(
   return changes
 }
 
+/**
+ * 递归比较两个配置值是否相等。
+ */
 function valuesAreEqual(previous: unknown, current: unknown): boolean {
   if (Object.is(previous, current)) return true
 
@@ -58,6 +64,9 @@ function valuesAreEqual(previous: unknown, current: unknown): boolean {
   return false
 }
 
+/**
+ * 判断值是否为可递归比较的普通对象。
+ */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== 'object') return false
 

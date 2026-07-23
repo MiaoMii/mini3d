@@ -240,6 +240,9 @@ export const sceneCoreDefinitions: readonly SceneCoreDefinition[] = [
   }
 ]
 
+/**
+ * 按标识或类型查找场景核心配置定义。
+ */
 export function findSceneCoreDefinition(idOrType: string): SceneCoreDefinition | undefined {
   return sceneCoreDefinitions.find(
     (definition) => definition.id === idOrType || definition.type === idOrType
